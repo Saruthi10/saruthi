@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+// Define a structure to hold sensor data 
+typedef struct { int sensorID;
+float temperature; float humidity; float pressure;
+} SensorData;
+
+// Function prototypes
+
+void printSensorData(SensorData data[], int size);
+
+float calculateAverageTemperature(SensorData data[], int size); 
+float findMaxTemperature(SensorData data[], int size);
+float findMinTemperature(SensorData data[], int size); 
+int main() {
+// Sample sensor data SensorData data[] = {
+
+{1, 23.4, 45.0, 1012.3},
+ 
+{2, 24.0, 44.8, 1011.9},
+
+{3, 22.8, 46.2, 1012.1},
+
+{4, 25.1, 45.5, 1011.5},
+
+{5, 23.9, 45.3, 1012.0}
+
+};
+
+int dataSize = sizeof(data) / sizeof(data[0]);
+
+// Print the sensor data printSensorData(data, dataSize);
+// Perform analysis
+
+float avgTemp = calculateAverageTemperature(data, dataSize);
+float maxTemp = findMaxTemperature(data, dataSize);
+float minTemp = findMinTemperature(data, dataSize);
+
+// Display results
+
+printf("\nSensor Data Analysis:\n");
+
+printf("Average Temperature: %.2f°C\n", avgTemp); 
+printf("Maximum Temperature: %.2f°C\n", maxTemp);
+printf("Minimum Temperature: %.2f°C\n", minTemp);
+return 0;
+}
+
+// Function to print sensor data
+
+void printSensorData(SensorData data[], int size)
+{ 
+printf("Sensor Data:\n");
+for (int i = 0; i < size; i++) {
+
+printf("Sensor ID: %d, Temperature: %.2f°C, Humidity: %.2f%%, Pressure: %.2f hPa\n", data[i].sensorID, data[i].temperature, data[i].humidity, data[i].pressure);
+}
+
+}
+
+// Function to calculate the average temperature
+
+float calculateAverageTemperature(SensorData data[], int size) 
+{ float sum = 0.0;
+for (int i = 0; i < size; i++) { sum += data[i].temperature;
+}
+
+return sum / size;
+
+}
+
+// Function to find the maximum temperature
+
+float findMaxTemperature(SensorData data[], int size) { float maxTemp = data[0].temperature;
+for (int i = 1; i < size; i++) {
+
+if (data[i].temperature > maxTemp) {
+
+maxTemp = data[i].temperature;
+
+}
+
+}
+
+return maxTemp;
+
+}// Function to find the minimum temperature
+
+float findMinTemperature(SensorData data[], int size) { float minTemp = data[0].temperature;
+for (int i = 1; i < size; i++) {
+
+if (data[i].temperature < minTemp) { minTemp = data[i].temperature;
+}
+
+}
+
+return minTemp;
+
+}
