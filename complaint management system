@@ -1,0 +1,48 @@
+classComplaint:
+definit(self,complaint_id,user_name,description): self.complaint_id = complaint_id
+self.user_name=user_name self.description = description
+self.status="Pending"
+
+
+classComplaintManagementSystem: def init(self):
+self.complaints=[] self.next_id = 1
+
+deffile_complaint(self,user_name,description):
+complaint=Complaint(self.next_id,user_name,description) self.complaints.append(complaint)
+self.next_id+=1
+print(f"ComplaintfiledsuccessfullywithID:{complaint.complaint_id}")
+
+
+def view_complaints(self): if not self.complaints:
+print("Nocomplaintsfound.") else:
+forcomplaintinself.complaints:
+print(f"ID:{complaint.complaint_id},User:{complaint.user_name}, Description: {complaint.description}, Status: {complaint.status}")
+
+defresolve_complaint(self,complaint_id): for complaint in self.complaints:
+ifcomplaint.complaint_id==complaint_id: complaint.status = "Resolved"
+print(f"ComplaintID:{complaint_id}hasbeenresolved.") return
+print(f"ComplaintID:{complaint_id}notfound.")
+ 
+def main():
+system= ComplaintManagementSystem()
+
+
+whileTrue:
+print("\nComplaintManagementSystem") print("1. File a Complaint")
+print("2. View Complaints") print("3.ResolveaComplaint") print("4. Exit")
+
+choice= input("Enteryourchoice:")
+
+
+ifchoice=='1':
+user_name = input("Enter your name: ") description=input("Entercomplaintdescription:") system.file_complaint(user_name, description)
+elif choice == '2': system.view_complaints()
+elifchoice=='3':
+complaint_id=int(input("EntercomplaintIDtoresolve:")) system.resolve_complaint(complaint_id)
+elifchoice=='4':
+print("Exitingthesystem.Goodbye!") break
+else:
+print("Invalidchoice,pleasetryagain.")
+
+
+if name	=="main": main()
