@@ -1,0 +1,116 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.util.HashMap;
+import java.util.Map;
+
+public class Main extends Frame implements ActionListener {
+    // Simulate a simple bank database
+    private static final Map<String, Double> accountBalances = new HashMap<>();
+    private static final Map<String, String> accountCurrencies = new HashMap<>();
+    private static final Map<String, Double> exchangeRates = new HashMap<>();
+
+    static {
+        // Account number with balance and currency type
+        accountBalances.put("123456789", 5000.0);
+        accountCurrencies.put("123456789", "USD");
+
+        accountBalances.put("987654321", 10000.0);
+        accountCurrencies.put("987654321", "EUR");
+
+        // Sample exchange rates (1 USD = rate)
+        exchangeRates.put("USD", 1.0); // Base currency
+        exchangeRates.put("EUR", 0.85);
+        exchangeRates.put("JPY", 110.0);
+        exchangeRates.put("GBP", 0.75);
+        exchangeRates.put("AUD", 1.35);
+        exchangeRates.put("CAD", 1.25);
+        exchangeRates.put("CHF", 0.92);
+        exchangeRates.put("CNY", 6.45);
+        exchangeRates.put("INR", 74.0);
+        exchangeRates.put("BRL", 5.20);
+        exchangeRates.put("ZAR", 14.5);
+        exchangeRates.put("MXN", 20.0);
+        exchangeRates.put("NZD", 1.40);
+        exchangeRates.put("SGD", 1.35);
+        exchangeRates.put("HKD", 7.80);
+    }
+
+    private TextField accountField, amountField, targetCurrencyField;
+    private Label balanceLabel, resultLabel;
+
+    public Main() {
+        setLayout(new FlowLayout());
+
+        add(new Label("Enter your bank account number:"));
+        accountField = new TextField(20);
+        add(accountField);
+
+        balanceLabel = new Label("Available balance:");
+        add(balanceLabel);
+
+        add(new Label("Enter amount to convert:"));
+        amountField = new TextField(10);
+        add(amountField);
+
+        add(new Label("Enter target currency:"));
+        targetCurrencyField = new TextField(5);
+        add(targetCurrencyField);
+
+        Button convertButton = new Button("Convert");
+        add(convertButton);
+        convertButton.addActionListener(this);
+
+        resultLabel = new Label();
+        add(resultLabel);
+
+        setTitle("Bank Currency Converter");
+        setSize(400, 300);
+        setVisible(true);
+
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent we) {
+                System.exit(0);
+            }
+        });
+    }
+
+    public void actionPerformed(ActionEvent ae) {
+        String accountNumber = accountField.getText();
+        Double balance = accountBalances.get(accountNumber);
+        String accountCurrency = accountCurrencies.get(accountNumber);
+
+        if (balance == null || accountCurrency == null) {
+            balanceLabel.setText("Invalid account number. Please try again.");
+            return;
+        }
+
+        balanceLabel.setText("Available balance: " + balance + " " + accountCurrency);
+
+        double amount = Double.parseDouble(amountField.getText());
+        if (amount > balance) {
+            resultLabel.setText("Insufficient funds.");
+            return;
+        }
+
+        String targetCurrency = targetCurrencyField.getText().toUpperCase();
+        if (!exchangeRates.containsKey(accountCurrency) || !exchangeRates.containsKey(targetCurrency)) {
+            resultLabel.setText("Invalid currency code. Please try again.");
+        } else {
+            double convertedAmount = convertCurrency(amount, accountCurrency, targetCurrency);
+            balance -= amount;
+            accountBalances.put(accountNumber, balance);
+            resultLabel.setText(String.format("Converted %.2f %s to %.2f %s. Updated balance: %.2f %s",
+                    amount, accountCurrency, convertedAmount, targetCurrency, balance, accountCurrency));
+        }
+    }
+
+    private double convertCurrency(double amount, String sourceCurrency, String targetCurrency) {
+        // Convert amount to USD first, then to target currency
+        double amountInUSD = amount / exchangeRates.get(sourceCurrency);
+        return amountInUSD * exchangeRates.get(targetCurrency);
+    }
+
+    public static void main(String[] args) {
+        new Main();
+    }
+}
