@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Online Auction — Single File Frontend</title>
+<style>
+  /* ====== style.css (embedded) ====== */
+  *{box-sizing:border-box;font-family:Inter,Arial,Helvetica,sans-serif}
+  body{margin:0;background:#f7f8fb;color:#222;min-height:100vh;display:flex;flex-direction:column}
+  header{background:#0a58ca;color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  header h1{margin:0;font-size:20px}
+  nav a{color:#fff;margin-right:12px;text-decoration:none;cursor:pointer}
+  .container{max-width:1000px;margin:20px auto;padding:18px;background:#fff;border-radius:10px;box-shadow:0 6px 18px rgba(20,20,20,0.06);flex:1;width:95%}
+  h2{margin-top:0}
+  .button{display:inline-block;padding:8px 12px;border-radius:6px;background:#0a58ca;color:#fff;text-decoration:none;border:none;cursor:pointer}
+  .button.ghost{background:transparent;color:#0a58ca;border:1px solid rgba(10,88,202,0.12)}
+  input,textarea,select{width:100%;padding:8px;margin:6px 0;border:1px solid #d7dbe6;border-radius:6px}
+  .table{width:100%;border-collapse:collapse;margin-top:10px}
+  .table th,.table td{border:1px solid #eef1f6;padding:8px;text-align:left}
+  .card{padding:14px;border:1px solid #eef1f6;border-radius:8px;margin-bottom:12px}
+  footer{text-align:center;padding:12px;background:#f1f1f1;margin-top:20px}
+  .nav-right{display:flex;gap:8px;align-items:center}
+  .small{font-size:0.9rem;color:#666}
+  .hidden{display:none}
+  .flex{display:flex;gap:12px;align-items:center}
+  .space-between{display:flex;justify-content:space-between;align-items:center}
+  .badge{background:#e9f1ff;color:#0a58ca;padding:4px 8px;border-radius:8px;font-size:0.85rem}
+  .error{background:#ffe6e6;color:#a70000;padding:8px;border-radius:6px;margin-bottom:10px}
+  .success{background:#e6ffec;color:#0a6b2a;padding:8px;border-radius:6px;margin-bottom:10px}
+  @media (max-width:600px){header{flex-direction:column;align-items:flex-start} .nav-right{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <h1>Online Auction (Demo)</h1>
+    <span class="badge" id="timeBadge"></span>
+  </div>
+  <div class="nav-right" id="topNav">
+    <!-- navigation links injected by JS -->
+  </div>
+</header>
+
+<main class="container">
+  <!-- Views (all in single file; show/hide via JS) -->
+
+  <!-- Home / Live auctions -->
+  <section id="view-home" class="view">
+    <div class="space-between">
+      <h2>Live Auctions</h2>
+      <div>
+        <button class="button" onclick="navigate('create-item')">Create Listing</button>
+        <button class="button ghost" onclick="navigate('about')">About</button>
+      </div>
+    </div>
+    <div id="homeList"></div>
+  </section>
+
+  <!-- Register -->
+  <section id="view-register" class="view hidden">
+    <h2>Register</h2>
+    <div id="registerMsg"></div>
+    <form id="registerForm" onsubmit="handleRegister(event)">
+      <label>Username</label><input name="username" required>
+      <label>Email</label><input name="email" type="email" required>
+      <label>Password</label><input name="password" type="password" required>
+      <button class="button" type="submit">Register</button>
+    </form>
+    <p class="small">Already have an account? <a onclick="navigate('login')">Login</a></p>
+  </section>
+
+  <!-- Login -->
+  <section id="view-login" class="view hidden">
+    <h2>Login</h2>
+    <div id="loginMsg"></div>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <label>Username or Email</label><input name="user" required>
+      <label>Password</label><input name="password" type="password" required>
+      <button class="button" type="submit">Login</button>
+    </form>
+  </section>
+
+  <!-- Create Item -->
+  <section id="view-create-item" class="view hidden">
+    <h2>Create Auction Item</h2>
+    <div id="createMsg"></div>
+    <form id="createForm" onsubmit="handleCreate(event)">
+      <label>Title</label><input name="title" required>
+      <label>Description</label><textarea name="description" rows="4"></textarea>
+      <label>Starting Bid (₹)</label><input name="starting_bid" type="number" step="0.01" required>
+      <label>Start Time</label><input name="start_time" type="datetime-local" required>
+      <label>End Time</label><input name="end_time" type="datetime-local" required>
+      <button class="button" type="submit">Create Auction</button>
+    </form>
+  </section>
+
+  <!-- Item detail -->
+  <section id="view-item" class="view hidden">
+    <div class="space-between"><h2 id="itemTitle">Item</h2><div id="itemControls"></div></div>
+    <p class="small" id="itemMeta"></p>
+    <div class="card" id="itemDesc"></div>
+
+    <div class="card">
+      <p><strong>Current Price:</strong> ₹<span id="itemCurrent">0.00</span></p>
+      <div id="bidSection"></div>
+    </div>
+
+    <div class="card">
+      <h3>Bid History</h3>
+      <table class="table" id="bidHistoryTable"><thead><tr><th>Bidder</th><th>Amount</th><th>Time</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- My items -->
+  <section id="view-my-items" class="view hidden">
+    <h2>My Listings</h2>
+    <div id="myItemsList"></div>
+  </section>
+
+  <!-- My bids -->
+  <section id="view-my-bids" class="view hidden">
+    <h2>My Bids</h2>
+    <div id="myBidsList"></div>
+  </section>
+
+  <!-- Users (admin view) -->
+  <section id="view-users" class="view hidden">
+    <h2>All Users (Demo)</h2>
+    <div id="usersList"></div>
+  </section>
+
+  <!-- Winners -->
+  <section id="view-winners" class="view hidden">
+    <h2>Winners (Closed Auctions)</h2>
+    <div id="winnersList"></div>
+  </section>
+
+  <!-- About -->
+  <section id="view-about" class="view hidden">
+    <h2>About</h2>
+    <p>This is a frontend demo of an Online Auction System. It demonstrates UI and basic client-side logic for creating listings, placing bids and determining winners. For a real app, a server / database is required.</p>
+  </section>
+</main>
+
+<footer>© 2025 Online Auction System — Frontend Demo</footer>
+
+<script>
+/* ====== app.js (embedded) ====== */
+/*
+ Single-file SPA frontend demo.
+ Data persistence via localStorage.
+*/
+
+const VIEWS = {
+  HOME: 'home', REGISTER: 'register', LOGIN: 'login', CREATE: 'create-item',
+  ITEM: 'item', MY_ITEMS: 'my-items', MY_BIDS: 'my-bids', USERS: 'users', WINNERS: 'winners', ABOUT: 'about'
+};
+
+let state = {
+  currentView: VIEWS.HOME,
+  currentUser: null,
+  items: [], // each: {id,title,description,starting_bid,current_price,start_time,end_time,closed,winner_id,seller}
+  bids: [],  // each: {id,item_id,bidder,amount,placed_at}
+  users: []  // each: {username,email,password}
+};
+
+const LS_KEY = 'auction_demo_v1';
+
+function nowISO() { return new Date().toISOString(); }
+function saveState() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function loadState() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (raw) {
+    try { state = JSON.parse(raw); }
+    catch(e){}
+  } else {
+    // seed with demo data
+    state.users = [
+      {username:'john', email:'john@example.com', password:'1234'},
+      {username:'sarah', email:'sarah@example.com', password:'1234'},
+      {username:'alice', email:'alice@example.com', password:'1234'}
+    ];
+    // two demo items
+    const now = new Date();
+    const end1 = new Date(now.getTime() + 3*24*3600*1000); // 3 days
+    const end2 = new Date(now.getTime() + 1*24*3600*1000); // 1 day
+    const start = new Date(now.getTime() - 1*3600*1000); // started 1 hour ago
+    state.items = [
+      {id:1,title:'Dell Inspiron Laptop',description:'High-performance laptop with 16GB RAM and 512GB SSD',starting_bid:15000,current_price:20000,start_time:start.toISOString(),end_time:end1.toISOString(),closed:false,winner_id:null,seller:'john'},
+      {id:2,title:'iPhone 14 Pro',description:'Used iPhone 14 Pro in excellent condition',starting_bid:60000,current_price:70000,start_time:start.toISOString(),end_time:end2.toISOString(),closed:false,winner_id:null,seller:'sarah'}
+    ];
+    state.bids = [
+      {id:1,item_id:1,bidder:'alice',amount:19500,placed_at:nowISO()},
+      {id:2,item_id:1,bidder:'bob',amount:20000,placed_at:nowISO()},
+      {id:3,item_id:2,bidder:'alice',amount:69000,placed_at:nowISO()},
+      {id:4,item_id:2,bidder:'charlie',amount:70000,placed_at:nowISO()}
+    ];
+    saveState();
+  }
+}
+loadState();
+
+// helper: format date
+function fmt(dtStr) {
+  const d = new Date(dtStr);
+  if (isNaN(d)) return dtStr;
+  return d.toLocaleString();
+}
+
+// Navigation
+function navigate(view, opts={}) {
+  state.currentView = view;
+  // hide all views
+  document.querySelectorAll('.view').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('view-' + view).classList.remove('hidden');
+  renderTopNav();
+  // per-view render
+  if (view === VIEWS.HOME) renderHome();
+  if (view === VIEWS.REGISTER) { document.getElementById('registerMsg').innerHTML=''; }
+  if (view === VIEWS.LOGIN) { document.getElementById('loginMsg').innerHTML=''; }
+  if (view === VIEWS.CREATE) { document.getElementById('createMsg').innerHTML=''; }
+  if (view === VIEWS.MY_ITEMS) renderMyItems();
+  if (view === VIEWS.MY_BIDS) renderMyBids();
+  if (view === VIEWS.USERS) renderUsers();
+  if (view === VIEWS.WINNERS) renderWinners();
+  if (view === VIEWS.ABOUT) {}
+  if (view === VIEWS.ITEM && opts.id) renderItem(opts.id);
+  // update time badge
+  document.getElementById('timeBadge').textContent = new Date().toLocaleString();
+}
+
+// Top nav render
+function renderTopNav() {
+  const nav = document.getElementById('topNav');
+  nav.innerHTML = '';
+  const addLink = (txt, view, opts) => {
+    const a = document.createElement('a');
+    a.textContent = txt; a.onclick = ()=>navigate(view, opts||{});
+    nav.appendChild(a);
+  };
+  addLink('Home','home');
+  if (!state.currentUser) {
+    addLink('Login','login'); addLink('Register','register');
+  } else {
+    addLink('Create','create-item'); addLink('My Items','my-items'); addLink('My Bids','my-bids');
+  }
+  addLink('Winners','winners'); addLink('Users','users');
+  addLink('About','about');
+  // show user info / logout
+  const right = document.createElement('div');
+  right.style.marginLeft='12px';
+  if (state.currentUser) {
+    const span = document.createElement('span'); span.className='small'; span.textContent = 'Signed in: ' + state.currentUser.username;
+    right.appendChild(span);
+    const logoutBtn = document.createElement('button'); logoutBtn.className='button ghost';
+    logoutBtn.style.marginLeft='8px'; logoutBtn.textContent='Logout'; logoutBtn.onclick = handleLogout;
+    right.appendChild(logoutBtn);
+  }
+  nav.appendChild(right);
+}
+
+// Render Home
+function renderHome() {
+  // update any auctions that should be closed
+  closeEndedAuctions();
+  const container = document.getElementById('homeList');
+  container.innerHTML = '';
+  // show items that are not closed and end_time > now
+  const now = new Date();
+  const live = state.items.filter(i=>!i.closed && new Date(i.end_time) > now && new Date(i.start_time) <= now);
+  if (live.length === 0) { container.innerHTML = '<p class="small">No active auctions at the moment.</p>'; return; }
+  live.sort((a,b)=> new Date(a.end_time) - new Date(b.end_time));
+  live.forEach(it=>{
+    const div = document.createElement('div'); div.className='card';
+    div.innerHTML = `<h3 style="margin:6px 0"><a style="color:#0a58ca;cursor:pointer">${escapeHtml(it.title)}</a></h3>
+      <p class="small">Seller: ${escapeHtml(it.seller)} — Ends: ${fmt(it.end_time)}</p>
+      <p>${escapeHtml(truncate(it.description,220))}</p>
+      <p><strong>Current Price: </strong> ₹${(it.current_price ?? it.starting_bid).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+    `;
+    div.querySelector('a').onclick = ()=>navigate(VIEWS.ITEM,{id:it.id});
+    const btn = document.createElement('button'); btn.className='button'; btn.textContent='View & Bid';
+    btn.onclick = ()=>navigate(VIEWS.ITEM,{id:it.id});
+    div.appendChild(btn);
+    container.appendChild(div);
+  });
+}
+
+// Register
+function handleRegister(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const username = f.username.value.trim();
+  const email = f.email.value.trim();
+  const password = f.password.value;
+  const msg = document.getElementById('registerMsg'); msg.innerHTML='';
+  if (!username || !email || !password) { msg.innerHTML = '<div class="error">All fields required.</div>'; return; }
+  // check exists
+  if (state.users.find(u=>u.username===username || u.email===email)) { msg.innerHTML = '<div class="error">Username or email already taken.</div>'; return; }
+  state.users.push({username,email,password});
+  saveState();
+  msg.innerHTML = '<div class="success">Registered. You can now login.</div>';
+  setTimeout(()=>navigate(VIEWS.LOGIN),800);
+}
+
+// Login
+function handleLogin(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  const user = f.user.value.trim();
+  const pass = f.password.value;
+  const msg = document.getElementById('loginMsg'); msg.innerHTML='';
+  const u = state.users.find(u=>u.username===user || u.email===user);
+  if (!u || u.password !== pass) { msg.innerHTML = '<div class="error">Invalid credentials (demo).</div>'; return; }
+  state.currentUser = {username:u.username,email:u.email};
+  saveState();
+  renderTopNav();
+  navigate(VIEWS.HOME);
+}
+
+// Logout
+function handleLogout() {
+  state.currentUser = null;
+  saveState();
+  renderTopNav();
+  navigate(VIEWS.HOME);
+}
+
+// Create item
+function handleCreate(ev) {
+  ev.preventDefault();
+  if (!state.currentUser) { document.getElementById('createMsg').innerHTML = '<div class="error">Please login to create items.</div>'; return; }
+  const f = ev.target;
+  const title = f.title.value.trim();
+  const description = f.description.value.trim();
+  const starting_bid = parseFloat(f.starting_bid.value);
+  const start_time = f.start_time.value;
+  const end_time = f.end_time.value;
+  if (!title||!start_time||!end_time||isNaN(starting_bid)||starting_bid<=0) { document.getElementById('createMsg').innerHTML='<div class="error">Please fill all fields properly.</div>'; return; }
+  const id = (state.items.reduce((m,i)=>Math.max(m,i.id),0) || 0) + 1;
+  const item = {id,title,description,starting_bid,current_price:starting_bid,start_time:new Date(start_time).toISOString(),end_time:new Date(end_time).toISOString(),closed:false,winner_id:null,seller:state.currentUser.username};
+  state.items.push(item);
+  saveState();
+  document.getElementById('createMsg').innerHTML = '<div class="success">Auction created.</div>';
+  setTimeout(()=>navigate(VIEWS.MY_ITEMS),700);
+}
+
+// Render item page
+function renderItem(itemId) {
+  const it = state.items.find(x=>x.id==itemId);
+  if (!it) { alert('Item not found'); navigate(VIEWS.HOME); return; }
+  // update closed status if ended
+  if (!it.closed && new Date(it.end_time) <= new Date()) {
+    closeAuction(it.id);
+  }
+  document.getElementById('itemTitle').textContent = it.title;
+  document.getElementById('itemMeta').textContent = `Seller: ${it.seller} — Ends: ${fmt(it.end_time)} — Status: ${it.closed ? 'Closed' : (new Date(it.start_time) > new Date() ? 'Not started' : 'Open')}`;
+  document.getElementById('itemDesc').textContent = it.description || '(No description)';
+  document.getElementById('itemCurrent').textContent = (it.current_price ?? it.starting_bid).toFixed(2);
+
+  // controls:
+  const controls = document.getElementById('itemControls'); controls.innerHTML='';
+  // if seller, show close button
+  if (state.currentUser && state.currentUser.username === it.seller && !it.closed) {
+    const closeBtn = document.createElement('button'); closeBtn.className='button ghost'; closeBtn.textContent='Close Auction';
+    closeBtn.onclick = ()=>{ if (confirm('Close auction now?')) { closeAuction(it.id); renderItem(it.id); } };
+    controls.appendChild(closeBtn);
+  }
+  // bid section
+  const bidSection = document.getElementById('bidSection'); bidSection.innerHTML='';
+  const now = new Date();
+  const started = new Date(it.start_time) <= now;
+  const ended = new Date(it.end_time) <= now || it.closed;
+  if (!started) {
+    bidSection.innerHTML = `<p class="small">Bidding not started. Starts: ${fmt(it.start_time)}</p>`;
+  } else if (ended) {
+    if (it.winner_id) bidSection.innerHTML = `<p class="small">Auction closed. Winner: <strong>${it.winner_id}</strong> — ₹${(it.current_price ?? it.starting_bid).toFixed(2)}</p>`;
+    else bidSection.innerHTML = `<p class="small">Auction closed with no bids.</p>`;
+  } else {
+    if (!state.currentUser) {
+      bidSection.innerHTML = `<p class="small">Please <a style="color:#0a58ca;cursor:pointer" onclick="navigate('login')">login</a> to place a bid.</p>`;
+    } else {
+      const minNext = (it.current_price ?? it.starting_bid) + 1.00;
+      const form = document.createElement('form');
+      form.onsubmit = (e)=>{ e.preventDefault(); placeBid(it.id, parseFloat(e.target.amount.value)); };
+      form.innerHTML = `<label>Your bid (min ₹${minNext.toFixed(2)})</label>
+        <input name="amount" type="number" step="0.01" min="${minNext}" required value="${minNext.toFixed(2)}">
+        <button class="button" type="submit">Place Bid</button>`;
+      bidSection.appendChild(form);
+    }
+  }
+
+  // bid history
+  renderBidHistory(it.id);
+}
+
+// Place bid
+function placeBid(itemId, amount) {
+  const it = state.items.find(i=>i.id==itemId);
+  if (!it) { alert('Item not found'); return; }
+  const now = new Date();
+  if (now < new Date(it.start_time) || now > new Date(it.end_time) || it.closed) { alert('Bidding not allowed at this time.'); renderItem(itemId); return; }
+  const minNext = (it.current_price ?? it.starting_bid) + 1.00;
+  if (isNaN(amount) || amount < minNext) { alert('Bid must be at least ₹' + minNext.toFixed(2)); return; }
+  const bidId = (state.bids.reduce((m,b)=>Math.max(m,b.id),0) || 0) + 1;
+  state.bids.push({id:bidId,item_id:itemId,bidder:state.currentUser.username,amount:amount,placed_at:nowISO()});
+  it.current_price = amount;
+  saveState();
+  renderItem(itemId);
+  alert('Bid placed successfully.');
+}
+
+// Render bid history
+function renderBidHistory(itemId) {
+  const tbody = document.querySelector('#bidHistoryTable tbody');
+  tbody.innerHTML = '';
+  const rows = state.bids.filter(b=>b.item_id==itemId).sort((a,b)=>b.amount - a.amount || new Date(a.placed_at)-new Date(b.placed_at));
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" class="small">No bids yet.</td></tr>'; return;
+  }
+  rows.forEach(b=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(b.bidder)}</td><td>₹${b.amount.toFixed(2)}</td><td>${fmt(b.placed_at)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// My items
+function renderMyItems() {
+  if (!state.currentUser) { document.getElementById('myItemsList').innerHTML = '<div class="error">Please login to view your items.</div>'; return; }
+  const list = state.items.filter(i=>i.seller === state.currentUser.username).sort((a,b)=> new Date(b.created_at||b.start_time) - new Date(a.created_at||a.start_time));
+  const container = document.getElementById('myItemsList'); container.innerHTML='';
+  if (list.length === 0) { container.innerHTML = '<p class="small">No listings yet.</p>'; return; }
+  list.forEach(it=>{
+    const div = document.createElement('div'); div.className='card';
+    div.innerHTML = `<h3 style="margin:6px 0"><a style="color:#0a58ca;cursor:pointer">${escapeHtml(it.title)}</a></h3>
+      <p class="small">Ends: ${fmt(it.end_time)} — Closed: ${it.closed ? 'Yes' : 'No'}</p>
+      <p>Current Price: ₹${(it.current_price ?? it.starting_bid).toFixed(2)}</p>`;
+    div.querySelector('a').onclick = ()=>navigate(VIEWS.ITEM,{id:it.id});
+    container.appendChild(div);
+  });
+}
+
+// My bids
+function renderMyBids() {
+  if (!state.currentUser) { document.getElementById('myBidsList').innerHTML = '<div class="error">Please login to view your bids.</div>'; return; }
+  const my = state.bids.filter(b=>b.bidder === state.currentUser.username).sort((a,b)=> new Date(b.placed_at) - new Date(a.placed_at));
+  const container = document.getElementById('myBidsList'); container.innerHTML='';
+  if (my.length === 0) { container.innerHTML = '<p class="small">You have not placed any bids yet.</p>'; return; }
+  const table = document.createElement('table'); table.className='table';
+  table.innerHTML = '<thead><tr><th>Item</th><th>Amount</th><th>Time</th><th>Status</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  my.forEach(b=>{
+    const item = state.items.find(i=>i.id==b.item_id);
+    const status = item ? (item.closed ? (item.winner_id === state.currentUser.username ? 'Won' : 'Closed') : 'Open') : 'Item removed';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><a style="color:#0a58ca;cursor:pointer">${escapeHtml(item?.title || 'Unknown')}</a></td><td>₹${b.amount.toFixed(2)}</td><td>${fmt(b.placed_at)}</td><td>${status}</td>`;
+    tr.querySelector('a')?.addEventListener('click', ()=>navigate(VIEWS.ITEM,{id:b.item_id}));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// Users (demo)
+function renderUsers() {
+  const container = document.getElementById('usersList'); container.innerHTML='';
+  const table = document.createElement('table'); table.className='table';
+  table.innerHTML = '<thead><tr><th>Username</th><th>Email</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  state.users.forEach(u=>{
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.email)}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody); container.appendChild(table);
+}
+
+// Winners (closed auctions)
+function renderWinners() {
+  const closed = state.items.filter(i=>i.closed);
+  const container = document.getElementById('winnersList'); container.innerHTML='';
+  if (closed.length===0) { container.innerHTML = '<p class="small">No closed auctions yet.</p>'; return; }
+  const table = document.createElement('table'); table.className='table';
+  table.innerHTML = '<thead><tr><th>Item</th><th>Winner</th><th>Winning Bid</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  closed.forEach(i=>{
+    const tr = document.createElement('tr'); tr.innerHTML = `<td>${escapeHtml(i.title)}</td><td>${escapeHtml(i.winner_id || '(no bids)')}</td><td>${i.current_price ? '₹'+i.current_price.toFixed(2) : '-'}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody); container.appendChild(table);
+}
+
+// Close auctions whose end_time <= now
+function closeEndedAuctions() {
+  const now = new Date();
+  let changed = false;
+  state.items.forEach(it=>{
+    if (!it.closed && new Date(it.end_time) <= now) { closeAuction(it.id); changed = true; }
+  });
+  if (changed) saveState();
+}
+
+function closeAuction(itemId) {
+  const it = state.items.find(i=>i.id==itemId);
+  if (!it) return;
+  const bidsForItem = state.bids.filter(b=>b.item_id==itemId);
+  if (bidsForItem.length === 0) {
+    it.closed = true; it.winner_id = null;
+  } else {
+    // highest amount; tie-break by earliest placed_at among equal amounts
+    bidsForItem.sort((a,b)=> b.amount - a.amount || new Date(a.placed_at) - new Date(b.placed_at));
+    it.closed = true; it.winner_id = bidsForItem[0].bidder; it.current_price = bidsForItem[0].amount;
+  }
+  saveState();
+}
+
+// Utilities
+function truncate(s,n){ if(!s) return ''; return s.length>n? s.slice(0,n)+'...':s; }
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]); }
+
+// Expose navigate for click handlers
+window.navigate = navigate;
+window.renderItem = (id)=>navigate(VIEWS.ITEM,{id});
+
+// placeBid exposed (used by dynamic forms)
+window.placeBid = placeBid;
+
+// initial render
+renderTopNav();
+navigate(VIEWS.HOME);
+
+// Periodic time update + auto-close auctions every 15s
+setInterval(()=>{ document.getElementById('timeBadge').textContent = new Date().toLocaleString(); closeEndedAuctions(); if (state.currentView === VIEWS.HOME) renderHome(); if (state.currentView === VIEWS.MY_ITEMS) renderMyItems(); if (state.currentView === VIEWS.ITEM && state.currentViewId) renderItem(state.currentViewId); }, 15000);
+
+// Expose some functions for debug in console
+window._STATE = state;
+</script>
+</body>
+</html>
